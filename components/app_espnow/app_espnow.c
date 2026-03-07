@@ -80,6 +80,14 @@ static void do_reset_state(void)
     s_consecutive_failures = 0;
     s_scan_channel = 1;
     atomic_store(&s_registered, false);
+
+    /* Flush TX queue to prevent sending stale data after reset */
+    if (s_tx_queue) {
+        tx_item_t dummy;
+        while (xQueueReceive(s_tx_queue, &dummy, 0) == pdTRUE) {
+            /* discard */
+        }
+    }
 }
 
 static void do_reset_state_with_nvs(void)
@@ -184,6 +192,12 @@ static void handle_rx_packet(const rx_item_t *item)
         {
             ESP_LOGE(TAG, "set_channel(%d) failed: %s",
                      resp->channel, esp_err_to_name(ch_err));
+            break;
+        }
+
+        /* Sanity check: ensure gateway is not broadcast */
+        if (memcmp(item->src_addr, s_broadcast_mac, ESP_NOW_ETH_ALEN) == 0) {
+            ESP_LOGW(TAG, "Ignored broadcast address as gateway");
             break;
         }
 
@@ -313,7 +327,11 @@ static void espnow_task(void *arg)
             tx_item_t tx;
             while (xQueueReceive(s_tx_queue, &tx, 0) == pdTRUE)
             {
-                esp_now_send(s_gateway_mac, tx.frame, tx.frame_len);
+                esp_err_t err = esp_now_send(s_gateway_mac, tx.frame, tx.frame_len);
+                if (err != ESP_OK)
+                {
+                    ESP_LOGE(TAG, "esp_now_send failed: %s", esp_err_to_name(err));
+                }
             }
         }
 
