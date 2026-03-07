@@ -12,29 +12,41 @@
 
 static bool s_registered = false;
 
-static void on_espnow_registered(void *arg, esp_event_base_t base, int32_t id, void *data)
+static void app_event_handler(void *arg, esp_event_base_t event_base,
+                              int32_t event_id, void *event_data)
 {
-    app_event_espnow_registered_t *evt = (app_event_espnow_registered_t *)data;
-    s_registered = true;
-    ESP_LOGI(TAG, "Registered: node_id=%d gateway=" MACSTR,
-             evt->node_id, MAC2STR(evt->gateway_mac));
-    /* TODO: start sensor tasks or timers here */
-}
+    /* Only process APP_EVENT_BASE events, filter others */
+    if (event_base != APP_EVENT_BASE)
+    {
+        return;
+    }
 
-static void on_espnow_unregistered(void *arg, esp_event_base_t base, int32_t id, void *data)
-{
-    s_registered = false;
-    ESP_LOGW(TAG, "Lost gateway, will retry registration");
-    /* TODO: stop sensor tasks or timers here */
-}
+    switch ((app_event_id_t)event_id)
+    {
 
-static void on_sensor_data(void *arg, esp_event_base_t base, int32_t id, void *data)
-{
-    app_event_sensor_data_t *evt = (app_event_sensor_data_t *)data;
-    esp_err_t err = app_espnow_send_data(evt->data, evt->data_len);
-    if (err != ESP_OK)
-        ESP_LOGW(TAG, "sensor_data send failed (type=%d): %s",
-                 evt->sensor_type, esp_err_to_name(err));
+    case APP_EVENT_ESPNOW_REGISTERED:
+        app_event_espnow_registered_t *evt = (app_event_espnow_registered_t *)event_data;
+        s_registered = true;
+        ESP_LOGI(TAG, "Registered: node_id=%d gateway=" MACSTR, evt->node_id, MAC2STR(evt->gateway_mac));
+        break;
+
+    case APP_EVENT_ESPNOW_UNREGISTERED:
+        s_registered = false;
+        ESP_LOGW(TAG, "Lost gateway, will retry registration");
+        break;
+
+    case APP_EVENT_SENSOR_DATA:
+        app_event_sensor_data_t *sensor_evt = (app_event_sensor_data_t *)event_data;
+        esp_err_t err = app_espnow_send_data(sensor_evt->data, sensor_evt->data_len);
+        if (err != ESP_OK)
+        {
+            ESP_LOGW(TAG, "sensor_data send failed (type=%d): %s", sensor_evt->sensor_type, esp_err_to_name(err));
+        }
+        break;
+
+    default:
+        break;
+    }
 }
 
 void app_main(void)
@@ -69,9 +81,12 @@ void app_main(void)
         return;
     }
 
-    app_event_handler_register(APP_EVENT_ESPNOW_REGISTERED, on_espnow_registered, NULL);
-    app_event_handler_register(APP_EVENT_ESPNOW_UNREGISTERED, on_espnow_unregistered, NULL);
-    app_event_handler_register(APP_EVENT_SENSOR_DATA, on_sensor_data, NULL);
+    err = app_event_handler_register(ESP_EVENT_ANY_ID, app_event_handler, NULL);
+    if (err != ESP_OK)
+    {
+        ESP_LOGE(TAG, "Failed to register event handler: %s", esp_err_to_name(err));
+        return;
+    }
 
     /* If restored from NVS, app_espnow_init already set registered state.
      * Sync local flag before entering the loop. */
