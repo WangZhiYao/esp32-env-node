@@ -12,7 +12,11 @@ esp_err_t app_storage_init(void)
     if (err == ESP_ERR_NVS_NO_FREE_PAGES || err == ESP_ERR_NVS_NEW_VERSION_FOUND) {
         /* NVS partition is corrupted or version mismatch, erase and retry */
         ESP_LOGW(TAG, "NVS partition issue (%s), erasing...", esp_err_to_name(err));
-        ESP_ERROR_CHECK(nvs_flash_erase());
+        err = nvs_flash_erase();
+        if (err != ESP_OK) {
+            ESP_LOGE(TAG, "NVS erase failed: %s", esp_err_to_name(err));
+            return err;
+        }
         err = nvs_flash_init();
     }
 
