@@ -1,26 +1,35 @@
+#include "esp_log.h"
 #include "app_event.h"
-#include <esp_log.h>
 
 #define APP_EVENT_TAG "app_event"
 
+/* Event loop configuration */
+#define APP_EVENT_QUEUE_SIZE      16
+#define APP_EVENT_TASK_PRIORITY   5
+#define APP_EVENT_TASK_STACK_SIZE 3072
+
+// Defines the event base for this application's custom events.
 ESP_EVENT_DEFINE_BASE(APP_EVENT_BASE);
 
+// Handle for the dedicated application event loop.
 static esp_event_loop_handle_t s_loop = NULL;
 
 esp_err_t app_event_init(void)
 {
+    // Prevent re-initialization.
     if (s_loop != NULL)
     {
         ESP_LOGW(APP_EVENT_TAG, "Already initialized");
         return ESP_OK;
     }
 
+    // Configuration for the new event loop.
     esp_event_loop_args_t args = {
-        .queue_size      = 16,
-        .task_name       = "app_event_task",
-        .task_priority   = 5,
-        .task_stack_size = 3072,
-        .task_core_id    = tskNO_AFFINITY,
+        .queue_size = APP_EVENT_QUEUE_SIZE,
+        .task_name = "app_event_task", // Dedicated task for handling events.
+        .task_priority = APP_EVENT_TASK_PRIORITY,
+        .task_stack_size = APP_EVENT_TASK_STACK_SIZE,
+        .task_core_id = tskNO_AFFINITY,
     };
 
     esp_err_t err = esp_event_loop_create(&args, &s_loop);

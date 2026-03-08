@@ -1,5 +1,7 @@
 #pragma once
 
+#include <stdbool.h>
+#include <stddef.h>
 #include "esp_err.h"
 #include "app_protocol.h"
 

@@ -10,7 +10,6 @@
 #include "esp_now.h"
 #include "esp_mac.h"
 #include "esp_timer.h"
-
 #include "app_espnow.h"
 #include "app_storage.h"
 #include "app_protocol.h"
@@ -36,8 +35,7 @@
 #define NVS_KEY_CHANNEL "channel"
 
 /* Default Broadcast MAC Address */
-static const uint8_t s_broadcast_mac[ESP_NOW_ETH_ALEN] = {
-    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+static const uint8_t s_broadcast_mac[ESP_NOW_ETH_ALEN] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 
 /* ── RX queue item ── */
 typedef struct
@@ -82,9 +80,11 @@ static void do_reset_state(void)
     atomic_store(&s_registered, false);
 
     /* Flush TX queue to prevent sending stale data after reset */
-    if (s_tx_queue) {
+    if (s_tx_queue)
+    {
         tx_item_t dummy;
-        while (xQueueReceive(s_tx_queue, &dummy, 0) == pdTRUE) {
+        while (xQueueReceive(s_tx_queue, &dummy, 0) == pdTRUE)
+        {
             /* discard */
         }
     }
@@ -162,7 +162,9 @@ static void app_espnow_recv_cb(const esp_now_recv_info_t *recv_info,
 
     /* Non-blocking: drop if queue full */
     if (xQueueSend(s_rx_queue, &item, 0) != pdTRUE)
+    {
         ESP_LOGW(TAG, "RX queue full, packet dropped");
+    }
 }
 
 /* ── Packet handling (runs in espnow_task) ── */
@@ -196,7 +198,8 @@ static void handle_rx_packet(const rx_item_t *item)
         }
 
         /* Sanity check: ensure gateway is not broadcast */
-        if (memcmp(item->src_addr, s_broadcast_mac, ESP_NOW_ETH_ALEN) == 0) {
+        if (memcmp(item->src_addr, s_broadcast_mac, ESP_NOW_ETH_ALEN) == 0)
+        {
             ESP_LOGW(TAG, "Ignored broadcast address as gateway");
             break;
         }
@@ -297,7 +300,7 @@ static void send_heartbeat(void)
 
     espnow_send(&hb, sizeof(hb));
     s_heartbeat_pending = true;
-    ESP_LOGI(TAG, "Heartbeat sent (seq=%d)", hb.header.seq);
+    ESP_LOGI(TAG, "Heartbeat queued (seq=%d)", hb.header.seq);
 }
 
 /* ── Main espnow_task ── */

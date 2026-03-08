@@ -1,10 +1,9 @@
 #pragma once
 
-#include "esp_err.h"
-#include "esp_now.h"
-
 #include <stdbool.h>
 #include <stdint.h>
+#include "esp_err.h"
+#include "esp_now.h"
 
 #ifdef __cplusplus
 extern "C" {
