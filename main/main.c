@@ -1,5 +1,6 @@
 #include <stdatomic.h>
 #include <stdio.h>
+#include <string.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "esp_log.h"
@@ -10,6 +11,7 @@
 #include "app_network.h"
 #include "app_sensor.h"
 #include "app_storage.h"
+#include "app_protocol.h"
 
 #define TAG "app_main"
 
@@ -18,7 +20,7 @@
 #define SENSOR_TASK_PRIORITY 5
 
 /* Sensor type identifiers */
-#define SENSOR_TYPE_ENVIRONMENTAL 0x01 /* For BME280/BH1750 combo */
+#define SENSOR_TYPE_ENVIRONMENTAL APP_PROTOCOL_SENSOR_ENV
 
 /* Sensor sampling period, converted from seconds (from Kconfig) to microseconds */
 #define SENSOR_INTERVAL_US ((uint64_t)CONFIG_SENSOR_SAMPLE_INTERVAL_S * 1000 * 1000)
@@ -72,12 +74,16 @@ static void sensor_task(void *arg)
         // Only prepare and send data if the node is confirmed to be registered.
         if (atomic_load(&s_registered))
         {
+            app_protocol_env_data_t payload = {
+                .temperature = data.temperature,
+                .pressure    = data.pressure,
+                .humidity    = data.humidity,
+                .lux         = data.lux,
+            };
             app_event_sensor_data_t evt = {0};
-            evt.sensor_type = SENSOR_TYPE_ENVIRONMENTAL;
-            // Format sensor data into a JSON string payload.
-            evt.data_len = (uint16_t)snprintf((char *)evt.data, sizeof(evt.data),
-                                              "{\"t\":%.2f,\"p\":%.2f,\"h\":%.2f,\"l\":%.2f}",
-                                              data.temperature, data.pressure, data.humidity, data.lux);
+            evt.sensor_type = APP_PROTOCOL_SENSOR_ENV;
+            evt.data_len    = sizeof(payload);
+            memcpy(evt.data, &payload, sizeof(payload));
             // Post the data to the event loop for handling by app_event_handler.
             app_event_post(APP_EVENT_SENSOR_DATA, &evt, sizeof(evt));
         }
@@ -121,7 +127,7 @@ static void app_event_handler(void *arg, esp_event_base_t event_base,
     {
         // Received sensor data event, ready to be sent via ESP-NOW.
         app_event_sensor_data_t *sensor_evt = (app_event_sensor_data_t *)event_data;
-        esp_err_t err = app_espnow_send_data(sensor_evt->data, sensor_evt->data_len);
+        esp_err_t err = app_espnow_send_data(sensor_evt->sensor_type, sensor_evt->data, sensor_evt->data_len);
         if (err != ESP_OK)
         {
             ESP_LOGW(TAG, "sensor_data send failed (type=%d): %s", sensor_evt->sensor_type, esp_err_to_name(err));

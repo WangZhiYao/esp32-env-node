@@ -492,7 +492,7 @@ esp_err_t app_espnow_init(void)
     return ESP_OK;
 }
 
-esp_err_t app_espnow_send_data(const uint8_t *data, size_t len)
+esp_err_t app_espnow_send_data(uint8_t sensor_type, const uint8_t *data, size_t len)
 {
     if (!atomic_load(&s_registered))
     {
@@ -509,10 +509,11 @@ esp_err_t app_espnow_send_data(const uint8_t *data, size_t len)
 
     tx_item_t tx = {0};
     app_protocol_data_report_t *report = (app_protocol_data_report_t *)tx.frame;
-    report->header.type = APP_PROTOCOL_MSG_DATA_REPORT;
+    report->header.type    = APP_PROTOCOL_MSG_DATA_REPORT;
     report->header.node_id = s_node_id;
-    report->header.seq = (uint16_t)atomic_fetch_add(&s_seq_num, 1);
-    report->data_len = (uint16_t)len;
+    report->header.seq     = (uint16_t)atomic_fetch_add(&s_seq_num, 1);
+    report->sensor_type    = sensor_type;
+    report->data_len       = (uint16_t)len;
     memcpy(report->data, data, len);
     tx.frame_len = (uint16_t)(offsetof(app_protocol_data_report_t, data) + len);
 

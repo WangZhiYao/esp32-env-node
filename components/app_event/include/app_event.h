@@ -39,9 +39,9 @@ typedef struct {
  * main.c listens for it and calls app_espnow_send_data().
  */
 typedef struct {
-    uint8_t  sensor_type; /*!< Sensor type identifier (user-defined) */
-    uint8_t  data[64];    /*!< Serialized sensor payload */
-    uint16_t data_len;    /*!< Valid bytes in data[] */
+    uint8_t  sensor_type;  /*!< Sensor type (app_protocol_sensor_type_t) */
+    uint16_t data_len;     /*!< Valid bytes in data[] */
+    uint8_t  data[16];     /*!< Binary sensor payload (e.g. app_protocol_env_data_t = 16 bytes) */
 } app_event_sensor_data_t;
 
 /**

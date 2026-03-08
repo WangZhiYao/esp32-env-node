@@ -24,11 +24,12 @@ esp_err_t app_espnow_init(void);
  *
  * Thread-safe — may be called from any task.
  *
- * @param data Pointer to the data buffer
- * @param len Length of the data
+ * @param sensor_type Sensor type identifier (app_protocol_sensor_type_t)
+ * @param data        Pointer to the binary payload
+ * @param len         Length of the payload in bytes
  * @return esp_err_t ESP_OK on success
  */
-esp_err_t app_espnow_send_data(const uint8_t *data, size_t len);
+esp_err_t app_espnow_send_data(uint8_t sensor_type, const uint8_t *data, size_t len);
 
 /**
  * @brief Check if the node is currently registered with a gateway
