@@ -11,3 +11,4 @@ typedef struct {
 
 esp_err_t app_sensor_init(void);
 esp_err_t app_sensor_read(sensor_data_t *out);
+esp_err_t app_sensor_deinit(void);

@@ -83,8 +83,8 @@ esp_err_t bme280_read_calib(i2c_master_dev_handle_t handle, bme280_calib_t *cali
 
     calib->dig_H2 = (int16_t)(hbuf[1] << 8 | hbuf[0]);
     calib->dig_H3 = hbuf[2];
-    calib->dig_H4 = (int16_t)(hbuf[3] << 4 | (hbuf[4] & 0x0F));
-    calib->dig_H5 = (int16_t)(hbuf[5] << 4 | (hbuf[4] >> 4));
+    calib->dig_H4 = (int16_t)((int8_t)hbuf[3] << 4) | (hbuf[4] & 0x0F);
+    calib->dig_H5 = (int16_t)((int8_t)hbuf[5] << 4) | (hbuf[4] >> 4);
     calib->dig_H6 = (int8_t)hbuf[6];
 
     return ESP_OK;

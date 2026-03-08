@@ -53,3 +53,18 @@ esp_err_t app_sensor_read(sensor_data_t *out)
 
     return ESP_OK;
 }
+
+esp_err_t app_sensor_deinit(void)
+{
+    ESP_RETURN_ON_ERROR(i2c_master_bus_rm_device(s_bh1750), TAG, "rm bh1750 failed");
+    s_bh1750 = NULL;
+
+    ESP_RETURN_ON_ERROR(i2c_master_bus_rm_device(s_bme280), TAG, "rm bme280 failed");
+    s_bme280 = NULL;
+
+    ESP_RETURN_ON_ERROR(i2c_del_master_bus(s_bus), TAG, "del bus failed");
+    s_bus = NULL;
+
+    ESP_LOGI(TAG, "sensors deinitialized");
+    return ESP_OK;
+}

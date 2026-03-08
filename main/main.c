@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdatomic.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "esp_log.h"
@@ -14,7 +15,7 @@
 
 #define SENSOR_INTERVAL_US  ((uint64_t)CONFIG_SENSOR_SAMPLE_INTERVAL_S * 1000 * 1000)
 
-static bool s_registered = false;
+static atomic_bool s_registered = false;
 static TaskHandle_t s_sensor_task;
 
 static void sensor_timer_cb(void *arg)
@@ -39,7 +40,7 @@ static void sensor_task(void *arg)
         ESP_LOGI(TAG, "T=%.2f°C P=%.2fhPa H=%.2f%% L=%.2flux",
                  data.temperature, data.pressure, data.humidity, data.lux);
 
-        if (s_registered)
+        if (atomic_load(&s_registered))
         {
             app_event_sensor_data_t evt = {0};
             evt.sensor_type = 0x01;
@@ -65,12 +66,12 @@ static void app_event_handler(void *arg, esp_event_base_t event_base,
 
     case APP_EVENT_ESPNOW_REGISTERED:
         app_event_espnow_registered_t *evt = (app_event_espnow_registered_t *)event_data;
-        s_registered = true;
+        atomic_store(&s_registered, true);
         ESP_LOGI(TAG, "Registered: node_id=%d gateway=" MACSTR, evt->node_id, MAC2STR(evt->gateway_mac));
         break;
 
     case APP_EVENT_ESPNOW_UNREGISTERED:
-        s_registered = false;
+        atomic_store(&s_registered, false);
         ESP_LOGW(TAG, "Lost gateway, will retry registration");
         break;
 
@@ -136,11 +137,12 @@ void app_main(void)
 
     /* If restored from NVS, app_espnow_init already set registered state.
      * Sync local flag before entering the loop. */
-    s_registered = app_espnow_is_registered();
+    atomic_store(&s_registered, app_espnow_is_registered());
 
     ESP_LOGI(TAG, "Node started");
 
     xTaskCreate(sensor_task, "sensor", 3072, NULL, 5, &s_sensor_task);
+    xTaskNotifyGive(s_sensor_task);  // trigger first read immediately
 
     const esp_timer_create_args_t timer_args = {
         .callback = sensor_timer_cb,
