@@ -28,4 +28,15 @@ menu "Project Configuration"
 
     endmenu
 
+    menu "Sensor Configuration"
+
+        config SENSOR_SAMPLE_INTERVAL_S
+            int "Sensor Sample Interval (seconds)"
+            default 5
+            range 1 3600
+            help
+              Interval in seconds between sensor readings (BME280 + BH1750).
+
+    endmenu
+
 endmenu

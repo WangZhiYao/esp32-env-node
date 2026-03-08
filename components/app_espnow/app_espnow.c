@@ -297,6 +297,7 @@ static void send_heartbeat(void)
 
     espnow_send(&hb, sizeof(hb));
     s_heartbeat_pending = true;
+    ESP_LOGI(TAG, "Heartbeat sent (seq=%d)", hb.header.seq);
 }
 
 /* ── Main espnow_task ── */
@@ -330,7 +331,11 @@ static void espnow_task(void *arg)
                 esp_err_t err = esp_now_send(s_gateway_mac, tx.frame, tx.frame_len);
                 if (err != ESP_OK)
                 {
-                    ESP_LOGE(TAG, "esp_now_send failed: %s", esp_err_to_name(err));
+                    ESP_LOGE(TAG, "Data send failed: %s", esp_err_to_name(err));
+                }
+                else
+                {
+                    ESP_LOGI(TAG, "Data sent (%d bytes)", tx.frame_len);
                 }
             }
         }
