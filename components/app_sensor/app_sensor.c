@@ -9,8 +9,8 @@
 
 // I2C bus configuration
 #define I2C_PORT I2C_NUM_0
-#define PIN_SDA 21
-#define PIN_SCL 22
+#define PIN_SDA GPIO_NUM_21
+#define PIN_SCL GPIO_NUM_22
 
 /* --- Static handles for I2C bus and devices --- */
 // Handle for the shared I2C master bus.
