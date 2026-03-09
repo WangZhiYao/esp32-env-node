@@ -231,6 +231,7 @@ static void handle_rx_packet(const rx_item_t *item)
         memcpy(s_gateway_mac, item->src_addr, ESP_NOW_ETH_ALEN);
         s_channel = resp->channel;
         s_consecutive_failures = 0;
+        s_heartbeat_pending = false;
         atomic_store(&s_registered, true);
 
         /* 5. Notify app */
